@@ -9,12 +9,13 @@ This project implements a specialized Legal RAG (Retrieval Augmented Generation)
 pip install -r requirements.txt
 ```
 
-2. Set up your Together AI API key:
-   - You can set it in your environment variables:
-   ```bash
-   export TOGETHER_API_KEY='your-api-key'
+2. Set up your environment variables:
+   - Create a `.env` file in the root directory
+   - Add your Together AI API key:
    ```
-   - Or set it in the code (not recommended for production)
+   TOGETHER_API_KEY=your-api-key-here
+   ```
+   - Never commit your `.env` file to version control
 
 3. Place your legal documents in the `Documents` directory.
 
@@ -88,8 +89,25 @@ The `LegalRAGAgentConfig` class allows you to customize various parameters:
 
 - `rag_agent.py`: Contains the main Legal RAG agent implementation
 - `main.py`: Example script showing how to use the legal agent
+- `api.py`: FastAPI backend for the web interface
+- `static/`: Directory containing the web interface files
 - `requirements.txt`: Project dependencies
 - `Documents/`: Directory for storing legal documents to analyze
+- `.env`: Environment variables (not in version control)
+
+## Environment Variables
+
+The following environment variables are required:
+
+- `TOGETHER_API_KEY`: Your Together AI API key
+
+You can set these variables in a `.env` file or in your system's environment.
+
+## Security Notes
+
+- Never commit your `.env` file or API keys to version control
+- Keep your API keys secure and rotate them regularly
+- Use appropriate access controls for your legal documents
 
 ## Legal Disclaimer
 

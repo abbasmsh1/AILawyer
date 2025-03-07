@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Document Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Legal Document Analysis</h1>
+            <p class="text-gray-600">AI-powered legal document analysis and consultation</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Query Section -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Legal Query</h2>
+                    <div class="mb-4">
+                        <textarea id="queryInput" rows="4" 
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter your legal query here..."></textarea>
+                    </div>
+                    <button id="submitQuery" 
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-gavel mr-2"></i>Analyze
+                    </button>
+                </div>
+
+                <!-- Response Section -->
+                <div id="responseSection" class="mt-6 bg-white rounded-lg shadow-lg p-6 hidden">
+                    <h2 class="text-2xl font-semibold mb-4">Analysis Results</h2>
+                    <div id="responseContent" class="prose max-w-none">
+                        <!-- Response will be inserted here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legal Context Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Legal Context</h2>
+                    <div id="legalContext" class="space-y-4">
+                        <!-- Legal context will be inserted here -->
+                    </div>
+                    <button id="editContext" 
+                        class="mt-4 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-edit mr-2"></i>Edit Context
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-800">Analyzing your query...</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const queryInput = document.getElementById('queryInput');
+            const submitButton = document.getElementById('submitQuery');
+            const responseSection = document.getElementById('responseSection');
+            const responseContent = document.getElementById('responseContent');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const legalContext = document.getElementById('legalContext');
+            const editContextButton = document.getElementById('editContext');
+
+            // Load initial legal context
+            fetchLegalContext();
+
+            submitButton.addEventListener('click', async function() {
+                const query = queryInput.value.trim();
+                if (!query) return;
+
+                try {
+                    showLoading();
+                    const response = await fetch('/api/query', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ query })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                        displayResponse(data.response);
+                        updateLegalContext(data.legal_context);
+                    } else {
+                        throw new Error(data.detail || 'Failed to process query');
+                    }
+                } catch (error) {
+                    displayError(error.message);
+                } finally {
+                    hideLoading();
+                }
+            });
+
+            editContextButton.addEventListener('click', async function() {
+                const currentContext = await getCurrentContext();
+                const newContext = prompt('Edit legal context (JSON format):', JSON.stringify(currentContext, null, 2));
+                
+                if (newContext) {
+                    try {
+                        const parsedContext = JSON.parse(newContext);
+                        await updateContext(parsedContext);
+                        fetchLegalContext();
+                    } catch (error) {
+                        alert('Invalid JSON format');
+                    }
+                }
+            });
+
+            async function fetchLegalContext() {
+                try {
+                    const response = await fetch('/api/context');
+                    const data = await response.json();
+                    updateLegalContext(data.legal_context);
+                } catch (error) {
+                    console.error('Failed to fetch legal context:', error);
+                }
+            }
+
+            async function getCurrentContext() {
+                const response = await fetch('/api/context');
+                const data = await response.json();
+                return data.legal_context;
+            }
+
+            async function updateContext(context) {
+                const response = await fetch('/api/context', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ legal_context: context })
+                });
+                return response.json();
+            }
+
+            function updateLegalContext(context) {
+                legalContext.innerHTML = Object.entries(context)
+                    .map(([key, value]) => `
+                        <div class="border-b border-gray-200 pb-2">
+                            <h3 class="font-semibold text-gray-700 capitalize">${key}</h3>
+                            <p class="text-gray-600">${value}</p>
+                        </div>
+                    `).join('');
+            }
+
+            function displayResponse(response) {
+                responseSection.classList.remove('hidden');
+                responseContent.innerHTML = `
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="whitespace-pre-wrap">${response}</p>
+                    </div>
+                `;
+                responseSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function displayError(message) {
+                responseSection.classList.remove('hidden');
+                responseContent.innerHTML = `
+                    <div class="bg-red-50 text-red-700 p-4 rounded-lg">
+                        <p>Error: ${message}</p>
+                    </div>
+                `;
+            }
+
+            function showLoading() {
+                loadingOverlay.classList.remove('hidden');
+                submitButton.disabled = true;
+            }
+
+            function hideLoading() {
+                loadingOverlay.classList.add('hidden');
+                submitButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html> 
