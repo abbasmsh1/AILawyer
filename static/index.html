@@ -3,140 +3,542 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Legal Document Analysis</title>
+    <title>LegalMind: AI-Powered Legal Document Analysis</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/48/000000/scales.png">
+    <meta name="description" content="AI-powered legal document analysis and consultation tool">
+    <style>
+        .chat-container {
+            height: calc(100vh - 180px);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        
+        .message {
+            max-width: 80%;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .user-message {
+            background-color: var(--user-message-bg);
+            color: var(--user-message-text);
+        }
+        
+        .assistant-message {
+            background-color: var(--assistant-message-bg);
+            color: var(--assistant-message-text);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .typing-indicator {
+            display: inline-block;
+        }
+        
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #6B7280;
+            border-radius: 50%;
+            margin-right: 2px;
+            animation: typing 1s infinite;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typing {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        /* Dark mode variables */
+        :root {
+            --bg-primary: #f3f4f6;
+            --bg-secondary: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --border-color: #e5e7eb;
+            --accent-color: #2563eb;
+            --accent-hover: #1d4ed8;
+            --user-message-bg: #e9f2ff;
+            --user-message-text: #1a365d;
+            --assistant-message-bg: #f9fafb;
+            --assistant-message-text: #111827;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .dark {
+            --bg-primary: #111827;
+            --bg-secondary: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --border-color: #374151;
+            --accent-color: #3b82f6;
+            --accent-hover: #60a5fa;
+            --user-message-bg: #2563eb;
+            --user-message-text: #f3f4f6;
+            --assistant-message-bg: #374151;
+            --assistant-message-text: #f9fafb;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+        }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .bg-card {
+            background-color: var(--bg-secondary);
+        }
+        
+        .border-custom {
+            border-color: var(--border-color);
+        }
+        
+        .text-custom {
+            color: var(--text-primary);
+        }
+        
+        .text-custom-secondary {
+            color: var(--text-secondary);
+        }
+        
+        .btn-primary {
+            background-color: var(--accent-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background-color: #CBD5E0;
+            border-radius: 4px;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background-color: #4B5563;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-4">
         <!-- Header -->
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">Legal Document Analysis</h1>
-            <p class="text-gray-600">AI-powered legal document analysis and consultation</p>
+        <header class="flex justify-between items-center mb-4 px-2">
+            <div class="flex items-center">
+                <i class="fas fa-balance-scale text-2xl mr-2" style="color: var(--accent-color);"></i>
+                <h1 class="text-2xl font-bold">LegalMind</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="settingsButton" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-cog text-custom-secondary"></i>
+                </button>
+                <button id="darkModeToggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-moon text-custom-secondary dark:hidden"></i>
+                    <i class="fas fa-sun text-custom-secondary hidden dark:block"></i>
+                </button>
+            </div>
         </header>
 
         <!-- Main Content -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Query Section -->
-            <div class="lg:col-span-2">
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="text-2xl font-semibold mb-4">Legal Query</h2>
-                    <div class="mb-4">
-                        <textarea id="queryInput" rows="4" 
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Enter your legal query here..."></textarea>
+        <div class="grid grid-cols-1 gap-4">
+            <!-- Chat Area -->
+            <div class="bg-card rounded-lg shadow-md border border-custom">
+                <div id="chatContainer" class="chat-container p-4">
+                    <!-- Welcome Message -->
+                    <div class="flex mb-6">
+                        <div class="message assistant-message rounded-lg p-4 shadow-sm">
+                            <p>Hello! I'm your Legal AI Assistant. I can analyze legal documents and provide insights based on your questions.</p>
+                            <p class="mt-2">If you have documents to analyze, click the settings icon <i class="fas fa-cog"></i> in the top right and upload them in the Document Management section.</p>
+                            <p class="mt-2">How can I help you today?</p>
+                        </div>
                     </div>
-                    <button id="submitQuery" 
-                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                        <i class="fas fa-gavel mr-2"></i>Analyze
-                    </button>
+                    <!-- Messages will be inserted here -->
                 </div>
+                
+                <!-- Input Area -->
+                <div class="border-t border-custom p-4">
+                    <form id="queryForm" class="flex items-end">
+                        <div class="flex-grow relative">
+                            <textarea id="queryInput" 
+                                class="w-full p-3 pr-10 border border-custom rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-color resize-none bg-card text-custom"
+                                placeholder="Ask a question about your legal documents..." 
+                                rows="1"
+                                maxlength="2000"></textarea>
+                            <div id="charCount" class="absolute bottom-2 right-2 text-xs text-custom-secondary">0/2000</div>
+                        </div>
+                        <button type="submit" id="submitQuery" 
+                            class="ml-2 btn-primary text-white p-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[46px]">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Response Section -->
-                <div id="responseSection" class="mt-6 bg-white rounded-lg shadow-lg p-6 hidden">
-                    <h2 class="text-2xl font-semibold mb-4">Analysis Results</h2>
-                    <div id="responseContent" class="prose max-w-none">
-                        <!-- Response will be inserted here -->
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-card rounded-lg shadow-lg w-full max-w-md max-h-[80vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-custom">Settings</h3>
+                <button id="closeSettingsModal" class="text-custom-secondary hover:text-custom">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="border-t border-custom pt-4">
+                <h4 class="text-lg font-medium mb-2 text-custom">Legal Assistant Context</h4>
+                <div id="legalContext" class="space-y-4 mb-4">
+                    <!-- Context will be inserted here -->
+                </div>
+                <button id="editContext" 
+                    class="btn-primary text-white px-4 py-2 rounded-lg w-full">
+                    <i class="fas fa-edit mr-2"></i>Edit Legal Context
+                </button>
+            </div>
+            
+            <div class="border-t border-custom pt-4 mt-4">
+                <h4 class="text-lg font-medium mb-2 text-custom">Document Management</h4>
+                <div class="mb-4">
+                    <div id="documentsContainer" class="max-h-48 overflow-y-auto mb-2">
+                        <div class="text-center text-custom-secondary py-2">
+                            <div class="spinner inline-block w-5 h-5 border-2 border-t-2 border-custom-secondary rounded-full animate-spin"></div>
+                            <span class="ml-2">Loading documents...</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col space-y-2">
+                        <label for="fileUpload" class="btn-primary text-white px-4 py-2 rounded-lg text-center cursor-pointer">
+                            <i class="fas fa-file-upload mr-2"></i>Upload Document
+                        </label>
+                        <input type="file" id="fileUpload" class="hidden" accept=".pdf,.docx,.doc,.txt,.rtf">
+                        <p class="text-xs text-custom-secondary">Supported formats: PDF, DOCX, DOC, TXT, RTF</p>
                     </div>
                 </div>
             </div>
-
-            <!-- Legal Context Section -->
-            <div class="lg:col-span-1">
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="text-2xl font-semibold mb-4">Legal Context</h2>
-                    <div id="legalContext" class="space-y-4">
-                        <!-- Legal context will be inserted here -->
-                    </div>
-                    <button id="editContext" 
-                        class="mt-4 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                        <i class="fas fa-edit mr-2"></i>Edit Context
-                    </button>
+            
+            <div class="border-t border-custom pt-4 mt-4">
+                <h4 class="text-lg font-medium mb-2 text-custom">Display</h4>
+                <div class="flex items-center justify-between">
+                    <span class="text-custom">Dark Mode</span>
+                    <label class="switch relative inline-block w-12 h-6">
+                        <input type="checkbox" id="darkModeCheckbox">
+                        <span class="slider absolute cursor-pointer inset-0 rounded-full bg-gray-300 dark:bg-gray-600 transition-colors"></span>
+                    </label>
                 </div>
+            </div>
+            
+            <div class="border-t border-custom pt-4 mt-4">
+                <h4 class="text-lg font-medium mb-2 text-custom">About</h4>
+                <p class="text-custom-secondary text-sm">
+                    LegalMind is an AI-powered legal document analysis tool that uses Retrieval-Augmented Generation (RAG) to provide professional legal insights based on your documents.
+                </p>
+                <p class="text-custom-secondary text-xs mt-2">
+                    This tool provides legal information based on the documents but does not substitute for licensed legal counsel.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Context Editor Modal -->
+    <div id="contextModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-card rounded-lg shadow-lg w-full max-w-md max-h-[80vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-custom">Edit Legal Context</h3>
+                <button id="closeContextModal" class="text-custom-secondary hover:text-custom">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="contextEditor" class="space-y-4">
+                <!-- Context editor will be generated here -->
+            </div>
+            <div class="mt-6 flex justify-end space-x-2">
+                <button id="cancelContext" class="px-4 py-2 rounded-lg border border-custom text-custom-secondary hover:bg-gray-100 dark:hover:bg-gray-700">
+                    Cancel
+                </button>
+                <button id="saveContext" class="btn-primary text-white px-4 py-2 rounded-lg">
+                    Save Changes
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-        <div class="bg-white p-6 rounded-lg shadow-lg text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p class="text-gray-800">Analyzing your query...</p>
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="absolute bottom-20 left-1/2 transform -translate-x-1/2">
+            <div class="bg-card p-4 rounded-lg shadow-lg">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notificationToast" class="fixed bottom-4 right-4 bg-card text-custom px-4 py-3 rounded-lg shadow-lg hidden z-50 border border-custom max-w-xs">
+        <div class="flex items-center">
+            <i id="notificationIcon" class="fas fa-info-circle mr-2"></i>
+            <span id="notificationMessage"></span>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const chatContainer = document.getElementById('chatContainer');
+            const queryForm = document.getElementById('queryForm');
             const queryInput = document.getElementById('queryInput');
+            const charCount = document.getElementById('charCount');
             const submitButton = document.getElementById('submitQuery');
-            const responseSection = document.getElementById('responseSection');
-            const responseContent = document.getElementById('responseContent');
             const loadingOverlay = document.getElementById('loadingOverlay');
+            const notificationToast = document.getElementById('notificationToast');
+            const notificationMessage = document.getElementById('notificationMessage');
+            const notificationIcon = document.getElementById('notificationIcon');
+            
+            // Settings elements
+            const settingsButton = document.getElementById('settingsButton');
+            const settingsModal = document.getElementById('settingsModal');
+            const closeSettingsModal = document.getElementById('closeSettingsModal');
             const legalContext = document.getElementById('legalContext');
+            
+            // Dark mode elements
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const darkModeCheckbox = document.getElementById('darkModeCheckbox');
+            
+            // Context editor elements
             const editContextButton = document.getElementById('editContext');
-
+            const contextModal = document.getElementById('contextModal');
+            const contextEditor = document.getElementById('contextEditor');
+            const closeContextModal = document.getElementById('closeContextModal');
+            const cancelContextButton = document.getElementById('cancelContext');
+            const saveContextButton = document.getElementById('saveContext');
+            
+            let currentContext = {};
+            let conversation = [];
+            let documentsList = [];
+            
+            // Initialize dark mode
+            initDarkMode();
+            
+            // Auto-resize textarea
+            autoResizeTextarea();
+            
             // Load initial legal context
             fetchLegalContext();
-
-            submitButton.addEventListener('click', async function() {
+            
+            // Event listeners
+            queryForm.addEventListener('submit', handleSubmit);
+            queryInput.addEventListener('input', handleInputChange);
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+            darkModeCheckbox.addEventListener('change', toggleDarkMode);
+            
+            settingsButton.addEventListener('click', () => {
+                settingsModal.classList.remove('hidden');
+            });
+            
+            closeSettingsModal.addEventListener('click', () => {
+                settingsModal.classList.add('hidden');
+            });
+            
+            editContextButton.addEventListener('click', openContextEditor);
+            closeContextModal.addEventListener('click', closeContextEditor);
+            cancelContextButton.addEventListener('click', closeContextEditor);
+            saveContextButton.addEventListener('click', saveContextChanges);
+            
+            // Document upload
+            const fileUpload = document.getElementById('fileUpload');
+            fileUpload.addEventListener('change', handleFileUpload);
+            
+            // Handle form submission
+            async function handleSubmit(e) {
+                e.preventDefault();
                 const query = queryInput.value.trim();
+                
                 if (!query) return;
-
+                
+                // Add user message to chat
+                addMessage('user', query);
+                
+                // Clear input and adjust height
+                queryInput.value = '';
+                queryInput.style.height = 'auto';
+                charCount.textContent = '0/2000';
+                
                 try {
                     showLoading();
-                    const response = await fetch('/api/query', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ query })
-                    });
-
-                    const data = await response.json();
-                    if (response.ok) {
-                        displayResponse(data.response);
-                        updateLegalContext(data.legal_context);
-                    } else {
-                        throw new Error(data.detail || 'Failed to process query');
-                    }
-                } catch (error) {
-                    displayError(error.message);
-                } finally {
+                    const response = await processQuery(query);
                     hideLoading();
+                    
+                    // Add assistant response to chat
+                    addMessage('assistant', response);
+                } catch (error) {
+                    hideLoading();
+                    showNotification(error.message, true);
+                    addMessage('assistant', 'I apologize, but I encountered an error while processing your request. Please try again.');
                 }
-            });
-
-            editContextButton.addEventListener('click', async function() {
-                const currentContext = await getCurrentContext();
-                const newContext = prompt('Edit legal context (JSON format):', JSON.stringify(currentContext, null, 2));
+            }
+            
+            // Process query through API
+            async function processQuery(query) {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
                 
-                if (newContext) {
-                    try {
-                        const parsedContext = JSON.parse(newContext);
-                        await updateContext(parsedContext);
-                        fetchLegalContext();
-                    } catch (error) {
-                        alert('Invalid JSON format');
-                    }
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `Error: ${response.status} ${response.statusText}`);
                 }
-            });
-
+                
+                const data = await response.json();
+                updateLegalContext(data.legal_context);
+                return data.response;
+            }
+            
+            // Add message to chat
+            function addMessage(sender, text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'flex mb-6 ' + (sender === 'user' ? 'justify-end' : 'justify-start');
+                
+                const messageContent = document.createElement('div');
+                messageContent.className = `message ${sender}-message rounded-lg p-4 shadow-sm`;
+                
+                // Format message text with paragraph breaks
+                const formattedText = text.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+                messageContent.innerHTML = `<p>${formattedText}</p>`;
+                
+                messageDiv.appendChild(messageContent);
+                chatContainer.appendChild(messageDiv);
+                
+                // Scroll to bottom
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                // Save to conversation history
+                conversation.push({ role: sender, content: text });
+            }
+            
+            // Handle input changes
+            function handleInputChange() {
+                const length = this.value.length;
+                charCount.textContent = `${length}/2000`;
+                
+                // Auto-resize textarea
+                this.style.height = 'auto';
+                const newHeight = Math.min(this.scrollHeight, 200);
+                this.style.height = newHeight + 'px';
+                
+                // Disable button if empty
+                submitButton.disabled = length === 0;
+            }
+            
+            // Auto-resize textarea helper
+            function autoResizeTextarea() {
+                queryInput.addEventListener('input', function() {
+                    this.style.height = 'auto';
+                    const newHeight = Math.min(this.scrollHeight, 200); 
+                    this.style.height = newHeight + 'px';
+                });
+            }
+            
+            // Fetch legal context
             async function fetchLegalContext() {
                 try {
                     const response = await fetch('/api/context');
+                    if (!response.ok) {
+                        throw new Error(`Error: ${response.status} ${response.statusText}`);
+                    }
                     const data = await response.json();
+                    currentContext = data.legal_context;
                     updateLegalContext(data.legal_context);
                 } catch (error) {
                     console.error('Failed to fetch legal context:', error);
+                    showNotification('Failed to fetch legal context', true);
                 }
             }
-
-            async function getCurrentContext() {
-                const response = await fetch('/api/context');
-                const data = await response.json();
-                return data.legal_context;
+            
+            // Update legal context display
+            function updateLegalContext(context) {
+                currentContext = context;
+                legalContext.innerHTML = Object.entries(context)
+                    .map(([key, value]) => `
+                        <div class="border-b border-custom pb-2">
+                            <h3 class="font-semibold text-custom capitalize">${key}</h3>
+                            <p class="text-custom-secondary text-sm">${value}</p>
+                        </div>
+                    `).join('');
             }
-
+            
+            // Open context editor
+            function openContextEditor() {
+                contextEditor.innerHTML = Object.entries(currentContext)
+                    .map(([key, value]) => `
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-custom capitalize">${key}</label>
+                            ${key === 'disclaimer' ? 
+                                `<textarea data-key="${key}" class="w-full p-2 border border-custom rounded focus:outline-none focus:ring-1 focus:ring-accent-color bg-card text-custom" rows="3">${value}</textarea>` :
+                                `<input type="text" data-key="${key}" value="${value}" class="w-full p-2 border border-custom rounded focus:outline-none focus:ring-1 focus:ring-accent-color bg-card text-custom">`
+                            }
+                        </div>
+                    `).join('');
+                
+                contextModal.classList.remove('hidden');
+                settingsModal.classList.add('hidden');
+            }
+            
+            // Close context editor
+            function closeContextEditor() {
+                contextModal.classList.add('hidden');
+            }
+            
+            // Save context changes
+            async function saveContextChanges() {
+                const newContext = {};
+                const inputs = contextEditor.querySelectorAll('input, textarea');
+                
+                inputs.forEach(input => {
+                    newContext[input.dataset.key] = input.value.trim();
+                });
+                
+                try {
+                    showLoading();
+                    await updateContext(newContext);
+                    closeContextEditor();
+                    fetchLegalContext();
+                    showNotification('Legal context updated successfully');
+                } catch (error) {
+                    showNotification('Failed to update context: ' + error.message, true);
+                } finally {
+                    hideLoading();
+                }
+            }
+            
+            // Update context through API
             async function updateContext(context) {
                 const response = await fetch('/api/context', {
                     method: 'PUT',
@@ -145,47 +547,201 @@
                     },
                     body: JSON.stringify({ legal_context: context })
                 });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `Error: ${response.status} ${response.statusText}`);
+                }
+                
                 return response.json();
             }
-
-            function updateLegalContext(context) {
-                legalContext.innerHTML = Object.entries(context)
-                    .map(([key, value]) => `
-                        <div class="border-b border-gray-200 pb-2">
-                            <h3 class="font-semibold text-gray-700 capitalize">${key}</h3>
-                            <p class="text-gray-600">${value}</p>
-                        </div>
-                    `).join('');
-            }
-
-            function displayResponse(response) {
-                responseSection.classList.remove('hidden');
-                responseContent.innerHTML = `
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <p class="whitespace-pre-wrap">${response}</p>
-                    </div>
-                `;
-                responseSection.scrollIntoView({ behavior: 'smooth' });
-            }
-
-            function displayError(message) {
-                responseSection.classList.remove('hidden');
-                responseContent.innerHTML = `
-                    <div class="bg-red-50 text-red-700 p-4 rounded-lg">
-                        <p>Error: ${message}</p>
-                    </div>
-                `;
-            }
-
+            
+            // Show loading indicator
             function showLoading() {
                 loadingOverlay.classList.remove('hidden');
                 submitButton.disabled = true;
             }
-
+            
+            // Hide loading indicator
             function hideLoading() {
                 loadingOverlay.classList.add('hidden');
-                submitButton.disabled = false;
+                submitButton.disabled = queryInput.value.trim().length === 0;
             }
+            
+            // Show notification toast
+            function showNotification(message, isError = false) {
+                notificationMessage.textContent = message;
+                notificationIcon.className = isError ? 'fas fa-exclamation-circle text-red-500 mr-2' : 'fas fa-check-circle text-green-500 mr-2';
+                notificationToast.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    notificationToast.classList.add('hidden');
+                }, 3000);
+            }
+            
+            // Initialize dark mode
+            function initDarkMode() {
+                // Check for saved preference
+                const isDarkMode = localStorage.getItem('darkMode') === 'true';
+                
+                // Set initial state
+                if (isDarkMode) {
+                    document.documentElement.classList.add('dark');
+                    darkModeCheckbox.checked = true;
+                }
+            }
+            
+            // Toggle dark mode
+            function toggleDarkMode() {
+                const isDarkMode = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('darkMode', isDarkMode);
+                darkModeCheckbox.checked = isDarkMode;
+            }
+            
+            // Fetch documents list
+            async function fetchDocuments() {
+                try {
+                    const documentsContainer = document.getElementById('documentsContainer');
+                    
+                    const response = await fetch('/api/documents');
+                    if (!response.ok) {
+                        throw new Error(`Error: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    documentsList = data.documents;
+                    
+                    if (documentsList.length === 0) {
+                        documentsContainer.innerHTML = `
+                            <div class="text-center text-custom-secondary py-4">
+                                <i class="fas fa-file-alt text-2xl mb-2"></i>
+                                <p>No documents available</p>
+                                <p class="text-xs">Upload documents to analyze them</p>
+                            </div>
+                        `;
+                    } else {
+                        documentsContainer.innerHTML = `
+                            <div class="divide-y divide-custom">
+                                ${documentsList.map(doc => `
+                                    <div class="py-2 flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <i class="fas ${getFileIcon(doc.name)} mr-2 text-custom-secondary"></i>
+                                            <div>
+                                                <p class="text-sm text-custom truncate max-w-[200px]">${doc.name}</p>
+                                                <p class="text-xs text-custom-secondary">${doc.size_formatted}</p>
+                                            </div>
+                                        </div>
+                                        <button class="delete-document-btn text-red-500 hover:text-red-700 p-1" data-filename="${doc.name}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                        
+                        // Add event listeners to delete buttons
+                        document.querySelectorAll('.delete-document-btn').forEach(btn => {
+                            btn.addEventListener('click', handleDocumentDelete);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch documents:', error);
+                    showNotification('Failed to load documents', true);
+                }
+            }
+            
+            // Handle file upload
+            async function handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                try {
+                    showLoading();
+                    
+                    const response = await fetch('/api/documents/upload', {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || `Error: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    showNotification(`Document "${data.filename}" uploaded successfully`);
+                    
+                    // Refresh documents list
+                    fetchDocuments();
+                    
+                    // Reset file input
+                    event.target.value = '';
+                } catch (error) {
+                    console.error('Error uploading file:', error);
+                    showNotification(error.message || 'Error uploading document', true);
+                    event.target.value = '';
+                } finally {
+                    hideLoading();
+                }
+            }
+            
+            // Handle document deletion
+            async function handleDocumentDelete(event) {
+                const filename = event.currentTarget.dataset.filename;
+                
+                if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
+                    return;
+                }
+                
+                try {
+                    showLoading();
+                    
+                    const response = await fetch(`/api/documents/${encodeURIComponent(filename)}`, {
+                        method: 'DELETE',
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || `Error: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    showNotification(data.message);
+                    
+                    // Refresh documents list
+                    fetchDocuments();
+                } catch (error) {
+                    console.error('Error deleting document:', error);
+                    showNotification(error.message || 'Error deleting document', true);
+                } finally {
+                    hideLoading();
+                }
+            }
+            
+            // Get file icon based on extension
+            function getFileIcon(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                
+                switch (ext) {
+                    case 'pdf':
+                        return 'fa-file-pdf';
+                    case 'doc':
+                    case 'docx':
+                        return 'fa-file-word';
+                    case 'txt':
+                        return 'fa-file-alt';
+                    case 'rtf':
+                        return 'fa-file-alt';
+                    default:
+                        return 'fa-file';
+                }
+            }
+            
+            // Initial documents fetch
+            fetchDocuments();
         });
     </script>
 </body>

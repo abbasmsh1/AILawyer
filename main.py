@@ -1,9 +1,16 @@
 import os
+from dotenv import load_dotenv
 from rag_agent import LegalRAGAgent, LegalRAGAgentConfig
 
 def main():
-    # Set up environment variables
-    os.environ["TOGETHER_API_KEY"] = 'daacc8dc45f272f48e8571c2ff9bbccc7169541e632faa75e7efa12900cf2813'
+    # Load environment variables
+    load_dotenv()
+    
+    # Get API key from environment variables
+    api_key = os.getenv("TOGETHER_API_KEY")
+    if not api_key:
+        print("Error: TOGETHER_API_KEY environment variable is not set")
+        return
     
     # Create legal agent configuration with custom persona
     config = LegalRAGAgentConfig(
